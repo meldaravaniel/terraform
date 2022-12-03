@@ -27,5 +27,4 @@ runner = {
   namespace = "gitlab-runner"
   service_account_name = <KSA_NAME>
   chart_version = "0.47.0"
-  image = "gitlab/gitlab-runner:<RUNNER_IMAGE_TAG>"
 }
