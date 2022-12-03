@@ -1,6 +1,6 @@
 # K8s Gitlab Runner with Workload Identity
 
-Terraform, GCP, Kubernetes executor, Runner Helm Chart, and Cache accessed via Workload Identity
+Terraform, GCP, Kubernetes executor, Runner Helm Chart, and Cache accessed via Workload Identity GCS Cache
 
 High level instructions on doing this manually [here](https://gitlab.com/amygl/gitlab-runner/-/blob/main/docs/install/kubernetes.md#use-workload-identity-to-impersonate-iam-service-accounts) (awaiting MR by Gitlab team as of 12/2/22).
 
