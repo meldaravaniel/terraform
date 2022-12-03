@@ -214,5 +214,7 @@ resource "helm_release" "gitlab-runner" {
   
   # Terraform doesn't always re-kick the Helm provider...so just force it to.
   force_update = true
-  values       = data.template_file.runner_config.rendered
+  values       = [
+    data.template_file.helm_chart_values.rendered
+  ]
 }
