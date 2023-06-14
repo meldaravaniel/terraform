@@ -1,0 +1,111 @@
+steps:
+  - name: gcr.io/cloud-builders/git
+    args:
+      - '-c'
+      - |
+        echo "$$GL_SSH_KEY" > /root/.ssh/id_rsa
+        chmod 400 /root/.ssh/id_rsa
+        ssh-keyscan $_GL_HOST > /root/.ssh/known_hosts
+    id: get private key
+    entrypoint: bash
+    secretEnv:
+      - GL_SSH_KEY
+    volumes:
+      - name: ssh
+        path: /root/.ssh
+  - name: gcr.io/cloud-builders/git
+    args:
+      - clone
+      - '-n'
+      - $_GL_REPO
+      - .
+    id: clone MR repo
+    volumes:
+      - name: ssh
+        path: /root/.ssh
+  - name: gcr.io/cloud-builders/git
+    args:
+      - checkout
+      - $_GL_LAST_COMMIT
+    id: checkout MR commit
+  - name: 'hashicorp/terraform:1.4'
+    args:
+      - '-c'
+      - |
+        terraform -chdir=$_TFDIR init
+    id: tf init
+    entrypoint: sh
+  - name: 'hashicorp/terraform:1.4'
+    args:
+      - '-c'
+      - |
+        terraform -chdir=$_TFDIR validate
+    id: tf validate
+    entrypoint: sh
+  - name: 'hashicorp/terraform:1.4'
+    args:
+      - '-c'
+      - |
+        terraform -chdir=$_TFDIR plan -out=/workspace/tf-plan.cache
+    id: tf plan
+    entrypoint: sh
+  - name: 'hashicorp/terraform:1.4'
+    args:
+      - '-c'
+      - >
+        terraform -chdir=$_TFDIR show --json /workspace/tf-plan.cache >
+        /workspace/tf-plan.json
+    id: convert plan to json
+    entrypoint: sh
+  - name: 'exozet/jq:1.6-r0'
+    args:
+      - '-c'
+      - >
+        jq -r
+        '([.resource_changes[]?.change.actions?]|flatten)|{"create":(map(select(.=="create"))|length),"update":(map(select(.=="update"))|length),"delete":(map(select(.=="delete"))|length)}'
+        /workspace/tf-plan.json > /workspace/tf-plan-report.json
+    id: jq the plan
+    entrypoint: sh
+  - name: 'infracost/infracost:ci-0.10'
+    args:
+      - '-c'
+      - >
+        infracost diff --path=/workspace/tf-plan.json --format=json
+        --out-file=/workspace/infracost_plan.json
+    id: infracost the plan
+    entrypoint: sh
+    secretEnv:
+      - INFRACOST_API_KEY
+  - name: 'infracost/infracost:ci-0.10'
+    args:
+      - '-c'
+      - |
+        infracost comment gitlab --path="/workspace/infracost_plan.json" \
+                               --repo=$_GL_PROJECT \
+                               --merge-request=$_GL_MERGE_REQUEST_IID \
+                               --gitlab-server-url=$_GL_SERVER_URL \
+                               --gitlab-token=$$GL_API_KEY \
+                               --behavior=update
+    id: comment the infracost
+    entrypoint: sh
+    secretEnv:
+      - INFRACOST_API_KEY
+      - GL_API_KEY
+options:
+  logging: CLOUD_LOGGING_ONLY
+artifacts:
+  objects:
+    location: 'gs://{YOUR GCS BUCKET}/'
+    paths:
+      - /workspace/tf-plan.cache
+      - /workspace/tf-plan.json
+      - /workspace/tf-plan-report.json
+      - /workspace/infracost_plan.json
+availableSecrets:
+  secretManager:
+    - versionName: projects/{YOUR-PROJECT}/secrets/{your}_gitlab-ssh-key/versions/1
+      env: GL_SSH_KEY
+    - versionName: projects/{YOUR-PROJECT}/secrets/{your}_infracost-key/versions/1
+      env: INFRACOST_API_KEY
+    - versionName: projects/{YOUR-PROJECT}/secrets/{your}_gitlab-api-key/versions/1
+      env: GL_API_KEY
