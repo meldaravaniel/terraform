@@ -129,4 +129,4 @@ Modifying the version will not change anything automatically, so you'll need to:
 Ingress has three other images it needs: `ingress-nginx/kube-webhook-certgen`, `ingress-nginx/controller`, and `defaultbackend-amd64`.  
 These have versions that do not necessarily correspond to the main Ingress version.  When changing the main version, you'll need to go look at that 
 [version's chart values](https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml) to find the versions it's asking for 
-and copy them into the [artifact-registry.yml](.gitlab/artifact-registry.yml) file.  Not great...but so it goes.
+and copy them into the [gar-job.yml](jobs/gar-job.yml) file.  Not great...but so it goes.
