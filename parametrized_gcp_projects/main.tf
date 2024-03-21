@@ -6,11 +6,6 @@ data "google_billing_account" "billing" {
   display_name = var.billing_account_name
 }
 
-data "google_secret_manager_secret" "gitlab_ssh_key" {
-  secret_id = "${var.uber_gsa_name}_gitlab-key"
-  project   = var.uber_project_id
-}
-
 # Create a folder to keep our application projects in
 resource "google_folder" "folder" {
   display_name = var.folder_name
@@ -66,5 +61,4 @@ module "test" {
   project_name       = "My Test Project"
   folder_id          = google_folder.folder.folder_id
   billing_account_id = data.google_billing_account.billing.id
-  gitlab_ssh_key_id  = data.google_secret_manager_secret.gitlab_ssh_key.id
 }
