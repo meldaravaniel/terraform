@@ -1,0 +1,27 @@
+# This is based on running in gitlab.  Cannibalization may be required.
+# Vars prefixed with TF_VAR_ are coming from parent.
+deploy_to_gar:
+  image: # see Dockerfile
+  stage: deploy
+  cache: [] # no cache, would be big.
+  variables:
+    PERFORM_GAR_SCRIPT: ${CI_PROJECT_DIR}/jobs/gar.sh
+    GAR_URL: ${your-region}-docker.pkg.dev/${your-project}/${your-gar-name}
+    GAR_OCI: "oci://${GAR_URL}"
+    INGRESS_V: ${TF_VAR_ingress_version}
+    INGRESS_DOCKER_URL: registry.k8s.io
+    INGRESS_KUBE_WEBHOOK: ingress-nginx/kube-webhook-certgen:${image-tag}
+    INGRESS_CONTROLLER: ingress-nginx/controller:${image-tag}
+    DEFAULT_BACKEND: defaultbackend-amd64:${image-tag}
+    CERTMAN_V: ${TF_VAR_cert_manager_version}
+    EXTERNAL_SECRETS_V: ${TF_VAR_external_secrets_operator_version}
+    RELOADER_V: ${TF_VAR_reloader_version}
+    CSQL_AUTH_PROXY_V: ${TF_VAR_cloud_sql_auth_proxy_version}
+    # add other version settings as necessary
+  script:
+    - chmod a+x ${PERFORM_GAR_SCRIPT} && . ${PERFORM_GAR_SCRIPT}
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_EVENT_TYPE == "detached"
+      changes: 
+        - jobs/gar.sh
+
